@@ -185,7 +185,6 @@ anova_results_summary_nk_filtered <- anova_results_summary_nk %>%
 
 write_xlsx(anova_results_summary_nk_filtered, "NK_anova.xlsx")
 
-
 #Barplots for FF and FcoR genes
 
 # Load necessary libraries
@@ -368,9 +367,3 @@ anova_results_summary_filtered <- anova_results_summary %>%
   filter(Gene != "FcoR50")
 
 write_xlsx(anova_results_summary_filtered, "FF_FcoR_anova.xlsx")
-
-
-
-
-
-
