@@ -54,8 +54,6 @@ print(heatmap_plot)
 # Save the plot to a file
 ggsave("protein_identity_heatmap.png", plot = heatmap_plot, width = 10, height = 10, dpi = 300)
 
-
-
 #Boxplot comparing the identities of FF genes vs FF1 alleles (or FcoR genes vs FcoR7 alelles)
 
 # Install and load required packages
@@ -82,4 +80,3 @@ ggplot(data_melted, aes(x=variable, y=value)) +
   theme_classic() +
   theme(text = element_text(size=16),
         axis.text.x = element_text(face = "bold", color = "black", size = 14))  # Adjusted x-axis text
-
