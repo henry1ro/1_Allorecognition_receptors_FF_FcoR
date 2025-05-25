@@ -45,7 +45,6 @@ ggplot(data, aes(x = Exons, y = Number_of_Genes)) +
   ) +
   expand_limits(y = 25)  # Extend the y-axis further for more space
 
-
 #Number of Fester genes with alternative splicing in the intracellular region
 
 # Load necessary libraries
@@ -92,4 +91,3 @@ ggplot(data, aes(x = Exons, y = Number_of_Genes)) +
     plot.margin = margin(20, 10, 40, 10)  # Adjusted margin for better spacing
   ) +
   expand_limits(y = 41)  # Extend the y-axis further for more space
-
