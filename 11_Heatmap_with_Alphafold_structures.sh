@@ -1,0 +1,154 @@
+#Generate a heatmap comparing PDB files (generated with AlphaFold) using TM-align
+
+#Install TM-align
+
+conda install bioconda::tmalign
+
+#Running TM-align (python script)
+
+import os
+import subprocess
+import pandas as pd
+import re  # Regular expression module to help sort the files correctly
+
+# Path to TM-align executable and PDB directory
+tmalign_path = "/path/to/TMalign"  # path to your TM-align executable
+pdb_dir = "/path/to/PDB_structures"  # Directory containing PDB files
+output_file = "output_results.csv"  # Output file for the results
+
+# List all PDB files
+pdb_files = [f for f in os.listdir(pdb_dir) if f.lower().endswith(".pdb")]
+print("Detected PDB files:", pdb_files)
+
+# Sort the files based on the numeric suffix (FF1, FF2, FF3, ..., FF45)
+pdb_files.sort(key=lambda x: int(re.search(r'\d+', x).group()))  # Extract the numeric part and sort
+print("Sorted PDB files:", pdb_files)
+
+n = len(pdb_files)
+
+# Check if there are enough files to compare
+if n < 2:
+    print("Error: Not enough PDB files detected for comparison.")
+    exit()
+
+# Data storage for results
+results = []
+
+# Run TM-align for all pairs
+for i in range(n):
+    for j in range(i + 1, n):
+        pdb1 = os.path.join(pdb_dir, pdb_files[i])
+        pdb2 = os.path.join(pdb_dir, pdb_files[j])
+        command = "{} {} {}".format(tmalign_path, pdb1, pdb2)  # TM-align command
+
+        # Run TM-align and capture output
+        try:
+            process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            stdout, stderr = process.communicate()
+
+            if process.returncode != 0:
+                print("Error running TM-align for {} and {}: {}".format(pdb_files[i], pdb_files[j], stderr))
+                continue
+
+            output = stdout.decode('utf-8') if hasattr(stdout, 'decode') else stdout
+
+            # Initialize variables
+            tm_score1, tm_score2, rmsd = None, None, None
+
+            # Parse TM-score and RMSD from output
+            for line in output.split("\n"):
+                if "TM-score=" in line and " (if normalized" in line:
+                    parts = line.split()
+                    if len(parts) > 1:
+                        if tm_score1 is None:
+                            tm_score1 = float(parts[1])
+                        else:
+                            tm_score2 = float(parts[1])
+                if "Aligned length=" in line and "RMSD=" in line:
+                    parts = line.split()
+                    if len(parts) > 4:
+                        try:
+                            rmsd = float(parts[4].rstrip(','))
+                        except ValueError:
+                            rmsd = None
+
+            # Check if all values were found
+            if tm_score1 is not None and tm_score2 is not None and rmsd is not None:
+                # Store results
+                results.append({
+                    "Structure1": pdb_files[i],
+                    "Structure2": pdb_files[j],
+                    "TM-score1": tm_score1,
+                    "TM-score2": tm_score2,
+                    "RMSD": rmsd
+                })
+            else:
+                print("Warning: Could not parse TM-score or RMSD for {} vs {}".format(pdb_files[i], pdb_files[j]))
+
+        except Exception as e:
+            print("Error running TM-align for {} and {}: {}".format(pdb_files[i], pdb_files[j], e))
+
+# Save results to a CSV file
+df = pd.DataFrame(results)
+df.to_csv(output_file, index=False)
+print("TM-align results saved to {}".format(output_file))
+
+
+#Calculate an average ('average2') of TM-score1 and TM-score2 for each comparison between structures in Excel
+
+#Generate the heatmap using RStudio
+
+# Load necessary libraries
+library(ggplot2)    # For plotting
+library(reshape2)   # For converting matrix to long format
+library(pheatmap)   # Optional for heatmaps
+
+# Read in the data (make sure your data is saved as a CSV file)
+data <- read.csv("/path/to/tmalign_results.csv")  #Path to the TM-align results.'average2' is the value used for the plot
+
+# Create a unique list of structures (combine Structure1 and Structure2)
+structures <- unique(c(data$Structure1, data$Structure2))
+
+# Initialize a matrix to store average2 values
+avg2_matrix <- matrix(NA, nrow = length(structures), ncol = length(structures),
+                      dimnames = list(structures, structures))
+
+# Fill the matrix with average2 values
+for (i in 1:nrow(data)) {
+  structure1 <- data$Structure1[i]
+  structure2 <- data$Structure2[i]
+  avg2_matrix[structure1, structure2] <- data$average2[i]
+  avg2_matrix[structure2, structure1] <- data$average2[i]
+}
+
+# Perform hierarchical clustering
+dist_matrix <- as.dist(1 - avg2_matrix, diag = TRUE, upper = TRUE)  # 1 - avg2 for dissimilarity
+hc <- hclust(dist_matrix, method = "average")  # Hierarchical clustering
+
+# Reorder the matrix based on clustering
+avg2_matrix_ordered <- avg2_matrix[hc$order, hc$order]
+
+# Keep only the lower triangle of the reordered matrix
+avg2_matrix_ordered[upper.tri(avg2_matrix_ordered, diag = TRUE)] <- NA
+
+# Convert the matrix into long format for ggplot2
+avg2_long <- melt(avg2_matrix_ordered, na.rm = TRUE)
+
+# Plot the triangular heatmap using ggplot2
+ggplot(avg2_long, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "blue", high = "red", na.value = "white") +
+  labs(title = "Comparison of AlphaFold Structures",  #Title
+       x = "Domain 1", #label for x-axis
+       y = "Domain 2", #label for y-axis
+       fill = "TM-score") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.5, size = 10),
+        panel.grid = element_blank(),    # Remove gridlines
+        panel.background = element_blank(),  # Remove background color
+        axis.line = element_line(color = "black"),  # Optional: adds black border around the plot
+        plot.title = element_text(hjust = 0.5, size = 14),  # Center the title
+        legend.text = element_text(size = 14),
+        legend.title = element_text(size = 12),
+        axis.title.x = element_text(size = 14),  # Increase font size of x-axis title
+        axis.title.y = element_text(size = 14))  # Increase font size of y-axis title

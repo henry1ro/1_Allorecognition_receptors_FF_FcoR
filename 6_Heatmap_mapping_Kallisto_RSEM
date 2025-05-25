@@ -1,0 +1,39 @@
+#Heatmap with expression values from Kallisto or RSEM
+
+# Step 1: Load the necessary libraries
+library(ComplexHeatmap)
+library(circlize)  # For color palette customization
+
+# Step 2: Load the data from the text file
+data1 <- read.table("/path/to/FF_FcoR_mapping_results.txt", header = TRUE, sep = "\t", row.names = 1)  # Assuming genes are in the first column
+
+# Step 3: Convert the row names (gene names) and ensure data1 is numeric
+gene_names <- rownames(data1)  # Extract row names (gene names)
+colnames(data1) <- gsub("X", "", colnames(data1))  # Clean column names if needed (e.g., if they start with X)
+
+# Step 4: Convert the data1 to numeric (if not already numeric)
+data1[] <- lapply(data1, as.numeric)
+
+# Optional: Replace zero values with a small constant (e.g., 1) for visualization purposes
+data1[data1 == 0] <- 1
+
+# Step 5: Optionally, perform log2 transformation of the data1
+data1_log <- log2(data1 + 1)  # Add 1 to avoid log(0)
+
+# Step 6: Create the heatmap with both row and column clustering
+Heatmap(data1_log, 
+        name = "Expression",  # Heatmap color legend title
+        column_title = "Transcriptomes",  # Title for the columns
+        row_title = "Genes",  # Title for the rows
+        show_row_names = TRUE,  # Show gene names (row labels)
+        show_column_names = TRUE,  # Show transcriptome names (column labels)
+        clustering_distance_rows = "euclidean",  # Method for distance calculation in rows
+        clustering_distance_columns = "euclidean",  # Method for distance calculation in columns
+        clustering_method_rows = "complete",  # Method for hierarchical clustering of rows
+        clustering_method_columns = "complete",  # Method for hierarchical clustering of columns
+        row_dend_side = "right",  # Place row dendrogram to the right
+        column_dend_side = "top",  # Place column dendrogram at the top
+        col = colorRamp2(c(0, 5, 10), c("blue", "white", "red")),  # Blue-white-red palette similar to pheatmap
+        heatmap_legend_param = list(title = "Expression", at = c(0, 5, 10), labels = c("Low", "Medium", "High")),  # Custom legend
+        row_dend_width = unit(5, "cm"),  # Adjust the width of the row dendrogram
+        column_dend_height = unit(5, "cm"))  # Adjust the height of the column dendrogram

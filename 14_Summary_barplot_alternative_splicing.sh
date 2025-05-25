@@ -1,0 +1,95 @@
+#Number of Fester genes with alternative splicing in the extracellular region
+
+# Load necessary libraries
+library(ggplot2)
+library(stringr)  # For wrapping text
+
+# Create the data frame with gene names
+data <- data.frame(
+  Exons = c("Not detected", "1", "2", "3"), #number of alternatively spliced-out exons in the extracellular region
+  Number_of_Genes = c(12, 7, 18, 1),        #number of Fester genes with 0, 1, 2 or 3 spliced-out exons in the extracellular region
+  Genes = c(
+    "FF20, FF25, FF27, FF31, FF33, FF34, FF36, FF38, FF39, FF40, FF42, FF43",
+    "FF5, FF11, FF12/18/44, FF13/15/16/19, FF14, FF17, FF45",
+    "FF1, FF2, FF3, FF4, FF6, FF8, FF9, FF10, FF21, FF22, FF23, FF24, FF26, FF28/29/30, FF32, FF35, FF37, FF41",
+    "FF7"
+  )
+)
+
+# Reorder the Exons factor to ensure "Not detected" appears first
+data$Exons <- factor(data$Exons, levels = c("Not detected", "1", "2", "3"))
+
+# Wrap the gene names into multiple lines (if needed)
+data$GenesWrapped <- str_wrap(data$Genes, width = 20)  # Adjust width as needed
+
+# Create the bar plot
+ggplot(data, aes(x = Exons, y = Number_of_Genes)) +
+  geom_bar(stat = "identity", fill = "gray70", color = "black", width = 0.7) +  # Gray bars with black borders
+  geom_text(aes(label = GenesWrapped), vjust = -0.15, size = 3.5) +  # Closer labels to bars
+  labs(
+    title = "Alternative splicing in Extracellular region",
+    x = "Number of Exons Splice out",
+    y = "Number of Fester genes"
+  ) +
+  theme_minimal(base_size = 14) +  # Clean base theme
+  theme(
+    panel.grid = element_blank(),  # No gridlines
+    panel.background = element_blank(),  # Remove background
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 18),  # Center and bold title
+    axis.title.x = element_text(face = "bold", size = 14),
+    axis.title.y = element_text(face = "bold", size = 14),
+    axis.text.x = element_text(face = "bold", size = 12),
+    axis.text.y = element_text(face = "bold", size = 12),
+    legend.position = "none",  # Remove legend (bars already labeled)
+    plot.margin = margin(20, 10, 40, 10)  # Adjusted margin for better spacing
+  ) +
+  expand_limits(y = 25)  # Extend the y-axis further for more space
+
+
+#Number of Fester genes with alternative splicing in the intracellular region
+
+# Load necessary libraries
+library(ggplot2)
+library(stringr)  # For wrapping text
+
+# Create the new data frame with updated gene names
+data <- data.frame(
+  Exons = c("Not detected", "1", "2", "Two introns"), #number of alternatively spliced-out exons in the intracellular region
+  Number_of_Genes = c(26, 10, 1, 1), #number of Fester genes with 0, 1, or 2 spliced-out exons in the intracellular region
+  Genes = c(
+    "FF1, FF2, FF3, FF4, FF5, FF6, FF7, FF8, FF9, FF12/18/44, FF13/15/16/19, FF14, FF17, FF20, FF21, FF25, FF27, FF31, FF33, FF36, FF38, FF39, FF40, FF41, FF42, FF43",
+    "FF10, FF11, FF23, FF24, FF26, FF28/29/30, FF34, FF35, FF37, FF45",
+    "FF32",
+    "FF22"
+  )
+)
+
+# Reorder the Exons factor to ensure custom order
+data$Exons <- factor(data$Exons, levels = c("Not detected", "1", "2", "Two introns"))
+
+# Wrap the gene names into multiple lines (if needed)
+data$GenesWrapped <- str_wrap(data$Genes, width = 20)  # Adjust width as needed
+
+# Create the bar plot
+ggplot(data, aes(x = Exons, y = Number_of_Genes)) +
+  geom_bar(stat = "identity", fill = "gray70", color = "black", width = 0.7) +  # Gray bars with black borders
+  geom_text(aes(label = GenesWrapped), vjust = -0.15, size = 3.5) +  # Closer labels to bars
+  labs(
+    title = "Alternative splicing in Intracellular region",
+    x = "Number of Exons Splice out",
+    y = "Number of Fester genes"
+  ) +
+  theme_minimal(base_size = 14) +  # Clean base theme
+  theme(
+    panel.grid = element_blank(),  # No gridlines
+    panel.background = element_blank(),  # Remove background
+    plot.title = element_text(hjust = 0.5, face = "bold", size = 18),  # Center and bold title
+    axis.title.x = element_text(face = "bold", size = 14),
+    axis.title.y = element_text(face = "bold", size = 14),
+    axis.text.x = element_text(face = "bold", size = 12),
+    axis.text.y = element_text(face = "bold", size = 12),
+    legend.position = "none",  # Remove legend (bars already labeled)
+    plot.margin = margin(20, 10, 40, 10)  # Adjusted margin for better spacing
+  ) +
+  expand_limits(y = 41)  # Extend the y-axis further for more space
+

@@ -1,0 +1,42 @@
+#Barplot showing the PDB matches to AlphaFold structures
+
+# Load necessary library
+library(ggplot2)
+
+# Create the data frame
+df <- data.frame(
+  Gene = c("FF1", "FF2", "FF4", "FF5", "FF7", "FF8", "FF9", "FF10", "FF11", 
+           "FF12", "FF13", "FF14", "FF15", "FF16", "FF17", "FF18", "FF19", 
+           "FF20", "FF21", "FF22", "FF23", "FF24", "FF25", "FF26", "FF27", 
+           "FF28", "FF29", "FF30", "FF31", "FF32", "FF33", "FF34", "FF36", 
+           "FF37", "FF38", "FF39", "FF40", "FF41", "FF43", "FF44", "FF45"), #Proteins
+  E_Value = c(2.82E-03, 2.10E-04, 6.92E-03, 4.59E-06, 4.60E-04, 1.90E-03, 
+              5.64E-05, 3.23E-02, 4.70E-03, 5.26E-04, 1.81E-03, 1.39E-04, 
+              1.94E-03, 5.26E-05, 5.70E-04, 1.08E-03, 1.74E-03, 1.18E-01, 
+              4.78E-02, 2.31E-04, 4.52E-03, 3.13E-03, 2.90E-04, 7.92E-05, 
+              1.89E-01, 1.34E-02, 1.06E-04, 1.52E-04, 3.48E-01, 4.83E-04, 
+              4.69E-04, 2.29E-04, 3.76E-02, 1.32E-03, 6.11E-04, 7.13E-03, 
+              1.88E-04, 5.35E-04, 2.52E-01, 6.09E-05, 1.11E-04),            #e-values from Foldseek matches
+  Match = c("6obe", "1baf", "6h16", "6i6j", "5ayq", "6rqm", "7tfn", "5ihz", 
+            "1hcv", "6de7", "5mje", "5cma", "5mje", "5ayq", "2zot", "6muf", 
+            "6kn9", "7kd2", "7dv4", "6rp8", "7lg6", "6rpj", "7jlk", "7sak", 
+            "7kg4", "7ksg", "7kqy", "1nma", "6o8d", "6nnf", "7r24", "7dv4", 
+            "6rqm", "5v8l", "1hcv", "6rp8", "6igw", "8cy6", "2edn", "4weu", 
+            "7rxc")                                                        #PDB accession numbers for Foldseek matches
+)
+
+# Ensure the Gene factor is in the correct order
+df$Gene <- factor(df$Gene, levels = unique(df$Gene[order(as.numeric(gsub("FF", "", df$Gene)))]))
+
+# Create the bar plot
+ggplot(df, aes(x = Gene, y = E_Value)) +
+  geom_bar(stat = "identity", fill = "gray") +  # Set bar color to gray
+  scale_y_log10() +  # Log scale for E-value to make differences clearer
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1, vjust = 0.25, size = 12),  # Adjust x-axis labels
+        axis.text.y = element_text(size = 12),  # Increase size of y-axis labels
+        panel.grid = element_blank(),
+        plot.title = element_text(hjust = 0.5)  # Center the title
+ ) +  # Remove background grid lines
+  labs(title = "Alignment of Fester AlphaFold Structures with Immunoglobulin Domains", x = "Fester Protein", y = "E-Value (Foldseek)") +
+  geom_text(aes(label = Match), vjust = 1.0, size = 3, color = "black")  # Add match labels at the top of each bar
