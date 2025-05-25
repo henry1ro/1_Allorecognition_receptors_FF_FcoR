@@ -200,6 +200,5 @@ abundance_estimates_to_matrix.pl \
 /path/to/T24_rep2/RSEM.genes.results \
 /path/to/T24_rep3/RSEM.genes.results
 
-
 # Deactivate Conda environment
 conda deactivate
