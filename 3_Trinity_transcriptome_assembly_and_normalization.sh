@@ -57,7 +57,6 @@ conda activate trin
 # Deactivate Conda environment
 conda deactivate
 
-
 #Step 4 (Optional): If multiple replicates of forward and reverse reads need to be assembled with Trinity, the previous method may not work. An alternative script is provided
 
 #Step 4.1: Merged replicates for the same genotype
