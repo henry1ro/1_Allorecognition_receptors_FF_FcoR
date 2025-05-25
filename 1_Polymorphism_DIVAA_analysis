@@ -1,0 +1,110 @@
+#These scripts can be used to generate DIVAA plots (amino acid position vs. diversity value)
+
+#Step 1: Create and Activate enviroment
+
+conda create -n myenv python=3.8
+conda activate myenv
+conda install biopython
+
+#Step 2: Generate diversity values for each position
+
+#run it as python script example.py
+
+from Bio import AlignIO
+import numpy as np
+
+def calculate_diversity(alignment):
+    num_sequences = len(alignment)
+    alignment_length = alignment.get_alignment_length()
+    amino_acids = "ACDEFGHIKLMNPQRSTVWY"
+    num_amino_acids = len(amino_acids)
+    
+    diversity = []
+
+    for i in range(alignment_length):
+        freq = {aa: 0 for aa in amino_acids}
+        
+        for record in alignment:
+            if record.seq[i] != "-":  # Exclude positions with gaps
+                aa = record.seq[i]
+                if aa in freq:
+                    freq[aa] += 1
+        
+        # Convert counts to probabilities
+        total_valid_positions = sum(1 for record in alignment if record.seq[i] != "-")
+        probabilities = np.array(list(freq.values())) / total_valid_positions
+        
+        # Calculate diversity
+        diversity_value = 1 / np.sum(probabilities ** 2)
+        diversity.append(diversity_value / num_amino_acids)
+    
+    return diversity
+
+def main():
+    alignment_file = "/path/to/your_alignment_file.fasta" #Your protein alignment
+    alignment = AlignIO.read(alignment_file, "fasta")
+    
+    diversity = calculate_diversity(alignment)
+    
+    # Specify the path to the output text file
+    output_file = "diversity_results.txt" #This is the output file
+    
+    # Write the diversity results to the output file
+    with open(output_file, "w") as f:
+        for i, d in enumerate(diversity):
+            f.write("Position {}: Diversity = {:.4f}\n".format(i + 1, d))
+
+    print("Diversity results have been written to", output_file)
+
+if __name__ == "__main__":
+    main()
+
+
+#Step 3: Filter positions with values of 0.05 using a spreadsheet application (e.g., Excel). These represent non-polymorphic positions.
+
+#Step 4: Generate the plot in RStudio
+
+# Load the necessary library
+library(ggplot2)
+
+# Create the data frame
+data <- data.frame(
+  Position = c(1,2,3), #These are the variable amino acid positions. Positions with diversity values >0.05
+  Diversity_value = c(0.051, 0.052, 0.053) #Diversity values greater than 0.05
+)
+
+# Determine the maximum value of Diversity_value
+max_identity <- max(data$Diversity_value)
+
+# Increase the maximum limit for the y-axis for better visibility
+max_y <- max(0.20, max_identity) #The maximum value on the y-axis can be modified
+
+# Create breaks for y-axis with smaller intervals
+y_breaks <- seq(0.05, max_y, by = 0.01)
+
+# Create dot plot with highlighted ranges 
+
+plot <- ggplot(data, aes(x = Position, y = Diversity_value)) +
+  geom_rect(aes(xmin = 21, xmax = 133, , ymin = 0.05, ymax = 0.19), fill = "gray80", alpha = 0.5) + #The number of highlighted regions can be adjusted
+  geom_rect(aes(xmin = 138, xmax = 232, ymin = 0.05, ymax = 0.19), fill = "gray80", alpha = 0.5) +
+  geom_rect(aes(xmin = 242, xmax = 348, ymin = 0.05, ymax = 0.19), fill = "gray80", alpha = 0.5) +
+  geom_rect(aes(xmin = 375, xmax = 402, ymin = 0.05, ymax = 0.19), fill = "gray80", alpha = 0.5) +
+  geom_point(size = 2) +  # Increase the size of the dots
+  labs(x = "Position (Amino acid)", y = "Diversity value") +  # Change the label of the X-axis
+  ggtitle("your title") +  # The title of the plot
+  scale_x_continuous(breaks = seq(0, 531, by = 50), limits = c(0, 531), expand = c(0, 0)) + #The size of the protein on the x-axis can be modified
+  scale_y_continuous(breaks = y_breaks, expand = c(0, 0), limits = c(0.05, max_y)) +
+  theme_minimal() +
+  theme(
+    panel.grid.major = element_blank(), # Remove major grid lines
+    panel.grid.minor = element_blank(), # Remove minor grid lines
+    axis.line = element_line(), # Keep axis lines
+    axis.text.x = element_text(size = 14, color = "black"), # Increase size and change color of X-axis labels
+    axis.text.y = element_text(size = 14, color = "black"), # Increase size and change color of Y-axis labels
+    axis.title = element_text(size = 15), # Increase size of axis titles
+    axis.ticks.length = unit(0.2, "cm"), # Decrease size of ticks in the Y-axis
+    plot.title = element_text(hjust = 0.5, size = 17) # Center the plot title
+  )
+
+# Print the plot
+print(plot)
