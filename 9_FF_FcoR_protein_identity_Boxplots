@@ -1,0 +1,211 @@
+#Generate Boxplots for FF and FcoR genes, and cutoffs for genes vs alleles
+
+#Step 1: Calculate the protein identities for FF and FcoR sequences
+
+from Bio import SeqIO, pairwise2
+from Bio.Align import substitution_matrices
+import numpy as np
+from multiprocessing import Pool
+from tqdm import tqdm  # For progress tracking
+
+# Configurations
+input_file = "~/your_protein_sequences.fas"  # Replace with the path to your FASTA file (Not aligned)
+output_file = "your_identity_matrix.txt"
+substitution_matrix_name = "BLOSUM62"  # Change if needed (e.g., PAM250)
+gap_open_penalty = -10
+gap_extend_penalty = -1
+precision = 2  # Number of decimal places for output
+
+# Load the substitution matrix
+substitution_matrix = substitution_matrices.load(substitution_matrix_name)
+
+# Load the input FASTA file
+sequences = list(SeqIO.parse(input_file, "fasta"))
+if not sequences:
+    raise ValueError("No sequences found in the input file.")
+
+# Get the number of sequences and sequence names
+num_sequences = len(sequences)
+sequence_names = [record.id for record in sequences]
+
+# Function to compute sequence identity from an alignment
+def compute_identity(aligned_seq1, aligned_seq2):
+    matches = sum(a == b for a, b in zip(aligned_seq1, aligned_seq2) if a != '-' and b != '-')
+    total_length = sum(1 for a, b in zip(aligned_seq1, aligned_seq2) if a != '-' and b != '-')
+    return (matches / total_length) * 100 if total_length > 0 else 0
+
+# Function to compute pairwise alignment and identity
+def calculate_pairwise_identity(indices):
+    i, j = indices
+    seq1 = str(sequences[i].seq)
+    seq2 = str(sequences[j].seq)
+    alignment = pairwise2.align.globalds(seq1, seq2, substitution_matrix, gap_open_penalty, gap_extend_penalty, one_alignment_only=True)
+    aligned_seq1, aligned_seq2 = alignment[0].seqA, alignment[0].seqB
+    return i, j, compute_identity(aligned_seq1, aligned_seq2)
+
+# Generate pair indices for the upper triangular matrix
+pair_indices = [(i, j) for i in range(num_sequences) for j in range(i, num_sequences)]
+
+# Perform pairwise alignment and calculate identity using multiprocessing
+identity_matrix = np.zeros((num_sequences, num_sequences))
+with Pool() as pool:
+    for i, j, identity in tqdm(pool.imap(calculate_pairwise_identity, pair_indices), total=len(pair_indices), desc="Calculating identities"):
+        identity_matrix[i, j] = identity
+        identity_matrix[j, i] = identity  # Symmetric matrix
+
+# Create a full matrix with names
+header = [""] + sequence_names
+full_matrix = np.vstack([
+    header, 
+    [[sequence_names[i]] + [f"{x:.{precision}f}" for x in identity_matrix[i]] for i in range(num_sequences)]
+])
+
+# Save the matrix to a file
+with open(output_file, "w") as f:
+    for row in full_matrix:
+        f.write("\t".join(map(str, row)) + "\n")
+
+print(f"Pairwise identity matrix saved to {output_file}")
+
+#Step 2: Generate the Boxplots
+
+# === Load required libraries ===
+if (!require("ggplot2")) install.packages("ggplot2")
+library(ggplot2)
+
+if (!require("patchwork")) install.packages("patchwork")
+library(patchwork)
+
+# === Load Data and Process Identity Matrices ===
+file_path1 <- "~/FF1_alleles_pairwise_identity_matrix.txt"
+identity_data1 <- read.delim(file_path1, header = TRUE, stringsAsFactors = FALSE)
+identity_matrix1 <- as.matrix(identity_data1[,-1])
+rownames(identity_matrix1) <- identity_data1[[1]]
+diag(identity_matrix1) <- NA
+
+file_path2 <- "~/FF_genes_pairwise_identity_matrix.txt"
+identity_data2 <- read.delim(file_path2, header = TRUE, stringsAsFactors = FALSE)
+identity_matrix2 <- as.matrix(identity_data2[,-1])
+rownames(identity_matrix2) <- identity_data2[[1]]
+diag(identity_matrix2) <- NA
+
+file_path5 <- "~/FcoR7_alleles_pairwise_identity_matrix.txt"
+identity_data5 <- read.delim(file_path5, header = TRUE, stringsAsFactors = FALSE)
+identity_matrix5 <- as.matrix(identity_data5[,-1])
+rownames(identity_matrix5) <- identity_data5[[1]]
+diag(identity_matrix5) <- NA
+
+file_path6 <- "~/FcoR_genes_pairwise_identity_matrix.txt"
+identity_data6 <- read.delim(file_path6, header = TRUE, stringsAsFactors = FALSE)
+identity_matrix6 <- as.matrix(identity_data6[,-1])
+rownames(identity_matrix6) <- identity_data6[[1]]
+diag(identity_matrix6) <- NA
+
+file_path3 <- "~/FF_extracellular_pairwise_identity_matrix.txt"
+identity_data3 <- read.delim(file_path3, header = TRUE, stringsAsFactors = FALSE)
+identity_matrix3 <- as.matrix(identity_data3[,-1])
+rownames(identity_matrix3) <- identity_data3[[1]]
+diag(identity_matrix3) <- NA
+
+file_path4 <- "~/FF_intracellular_pairwise_identity_matrix.txt"
+identity_data4 <- read.delim(file_path4, header = TRUE, stringsAsFactors = FALSE)
+identity_matrix4 <- as.matrix(identity_data4[,-1])
+rownames(identity_matrix4) <- identity_data4[[1]]
+diag(identity_matrix4) <- NA
+
+file_path_extra <- "~/FcoR_extracellular_pairwise_identity_matrix.txt"
+identity_data_extra <- read.delim(file_path_extra, header = TRUE, stringsAsFactors = FALSE)
+identity_matrix_extra <- as.matrix(identity_data_extra[,-1])
+rownames(identity_matrix_extra) <- identity_data_extra[[1]]
+diag(identity_matrix_extra) <- NA
+
+file_path_intra <- "~/FcoR_intracellular_pairwise_identity_matrix.txt"
+identity_data_intra <- read.delim(file_path_intra, header = TRUE, stringsAsFactors = FALSE)
+identity_matrix_intra <- as.matrix(identity_data_intra[,-1])
+rownames(identity_matrix_intra) <- identity_data_intra[[1]]
+diag(identity_matrix_intra) <- NA
+
+file_path_kir <- "~/KIRs_pairwise_identity_matrix.txt"
+identity_data_kir <- read.delim(file_path_kir, header = TRUE, stringsAsFactors = FALSE)
+identity_matrix_kir <- as.matrix(identity_data_kir[,-1])
+rownames(identity_matrix_kir) <- identity_data_kir[[1]]
+diag(identity_matrix_kir) <- NA
+
+# === Combine all datasets into a single data frame ===
+df_combined <- rbind(
+  data.frame(Identity = identity_matrix1[upper.tri(identity_matrix1)], Dataset = "FF1 alleles"),
+  data.frame(Identity = identity_matrix5[upper.tri(identity_matrix5)], Dataset = "FcoR7 alleles"),
+  data.frame(Identity = identity_matrix2[upper.tri(identity_matrix2)], Dataset = "FF genes"),
+  data.frame(Identity = identity_matrix3[upper.tri(identity_matrix3)], Dataset = "FF extracellular"),
+  data.frame(Identity = identity_matrix4[upper.tri(identity_matrix4)], Dataset = "FF intracellular"),
+  data.frame(Identity = identity_matrix6[upper.tri(identity_matrix6)], Dataset = "FcoR genes"),
+  data.frame(Identity = identity_matrix_extra[upper.tri(identity_matrix_extra)], Dataset = "FcoR extracellular"),
+  data.frame(Identity = identity_matrix_intra[upper.tri(identity_matrix_intra)], Dataset = "FcoR intracellular"),
+  data.frame(Identity = identity_matrix_kir[!is.na(identity_matrix_kir)], Dataset = "KIR genes")
+)
+
+df_combined$Dataset <- factor(df_combined$Dataset, levels = c(
+  "FF1 alleles", "FF genes", "FF extracellular", "FF intracellular",
+  "FcoR7 alleles", "FcoR genes", "FcoR extracellular", "FcoR intracellular",
+  "KIR genes"
+))
+
+# === Cutoffs for highlighting ===
+min_FF1 <- min(identity_matrix1[upper.tri(identity_matrix1)], na.rm = TRUE)
+cutoff_FcoR7 <- 82  # FcoR7 cutoff at 82%
+
+# === Highlight FF1 vs FF3 ===
+ff1_ff3_extracellular <- identity_matrix3["FF1", "FF3"]
+ff1_ff3_intracellular <- identity_matrix4["FF1", "FF3"]
+ff1_ff3_full <- identity_matrix2["FF1", "FF3"]
+
+highlight_points_ff1_ff3 <- data.frame(
+  Dataset = factor(c("FF extracellular", "FF intracellular", "FF genes"), levels = levels(df_combined$Dataset)),
+  Identity = c(ff1_ff3_extracellular, ff1_ff3_intracellular, ff1_ff3_full),
+  Label = c("FF1 vs FF3", "FF1 vs FF3", "FF1 vs FF3")
+)
+
+# === Prepare data for gold highlights above cutoffs ===
+highlight_ff_genes_jitter <- df_combined[df_combined$Dataset == "FF genes" & df_combined$Identity > min_FF1, ]
+highlight_fcor_genes_jitter <- df_combined[df_combined$Dataset == "FcoR genes" & df_combined$Identity > cutoff_FcoR7, ]
+highlight_jitter_data <- rbind(highlight_ff_genes_jitter, highlight_fcor_genes_jitter)
+
+# === Prepare data for gray points ===
+is_gold_point <- (df_combined$Dataset == "FF genes" & df_combined$Identity > min_FF1) |
+                 (df_combined$Dataset == "FcoR genes" & df_combined$Identity > cutoff_FcoR7)
+df_gray_jitter <- df_combined[!is_gold_point, ]
+
+# === Create combined figure ===
+combined_figure <- ggplot(df_combined, aes(x = Dataset, y = Identity, fill = Dataset)) +
+  geom_boxplot(alpha = 0.8, outlier.shape = NA, color = "black") +
+  geom_jitter(data = df_gray_jitter, width = 0.15, alpha = 0.8, size = 1.5, shape = 21, fill = "gray70", color = "black") +
+  geom_jitter(data = highlight_jitter_data, width = 0.15, alpha = 0.9, size = 2.5, shape = 21, fill = "gold", color = "black", stroke = 1) +
+  geom_segment(aes(x = 0.9, xend = 2.1, y = min_FF1, yend = min_FF1), linetype = "dashed", color = "red", size = 1) +
+  geom_segment(aes(x = 4.9, xend = 6.1, y = cutoff_FcoR7, yend = cutoff_FcoR7), linetype = "dashed", color = "red", size = 1) +
+  geom_point(data = highlight_points_ff1_ff3, aes(x = Dataset, y = Identity), shape = 21, color = "black", fill = "red", size = 4, stroke = 1.5) +
+  geom_text(data = highlight_points_ff1_ff3, aes(x = Dataset, y = Identity, label = Label), nudge_x = 0.3, size = 5, color = "black") +
+  ylab("Pairwise Identity (%)") +
+  scale_y_continuous(limits = c(0, 100), breaks = seq(0, 100, 10)) +
+  scale_fill_manual(values = c(
+    "FF1 alleles" = "red",
+    "FcoR7 alleles" = "orange",
+    "FF genes" = "blue",
+    "FcoR genes" = "green",
+    "FF extracellular" = "cyan",
+    "FF intracellular" = "darkblue",
+    "FcoR extracellular" = "lightgreen",
+    "FcoR intracellular" = "darkgreen",
+    "KIR genes" = "purple"
+  )) +
+  theme_classic() +
+  theme(
+    text = element_text(size = 14),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 12, color = "black"),
+    axis.text.y = element_text(size = 14, color = "black"),
+    axis.title.x = element_blank(),
+    legend.position = "none"
+  )
+
+# === Display and Save ===
+print(combined_figure)
+ggsave("combined_figure.png", combined_figure, width = 14, height = 8)
