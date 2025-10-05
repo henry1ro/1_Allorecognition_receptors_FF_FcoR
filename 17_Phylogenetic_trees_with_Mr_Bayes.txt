@@ -1,0 +1,46 @@
+#Phylogenetic analysis with Bayesian Inference (MrBayes)
+
+#Perform protein alignment
+
+Run a multiple sequence alignment using Muscle software (https://www.ebi.ac.uk/Tools/msa/muscle/)
+
+Save the alignment output in Fasta format
+
+#Convert to NEXUS Format
+
+Open the alignment in MEGA software (the https://www.megasoftware.net/) 
+
+Then export the alignment in NEXUS format
+
+#Add MrBayes Parameters
+
+Open the .nexus file in a text editor and append the following block at the end of the file
+
+begin mrbayes;
+    set autoclose=yes nowarn=yes;
+    lset rates=gamma;
+    prset aamodelpr=mixed;
+    mcmc ngen=2000000 samplefreq=100 printfreq=100 diagnfreq=1000 nchains=4 temp=0.2;
+    sump burninfrac=0.25;  [Summarize with 25% burn-in]
+    sumt burninfrac=0.25;  [Tree summary with 25% burn-in]
+end;
+
+#Run MrBayes
+
+#!/bin/bash
+#SBATCH --ntasks=1                          
+#SBATCH --cpus-per-task=10                  
+#SBATCH --mem=40gb                          
+#SBATCH --time=5-00:00:00                   
+#SBATCH --job-name=mr_bayes                 
+#SBATCH --output=mr_bayes_%j.out            
+#SBATCH --error=mr_bayes_%j.err             
+
+# Navigate to the working directory with your input file
+cd ~/working_directory
+
+# Path to MrBayes executable
+MB_EXEC="~/MrBayes-3.2.7a/MrBayes/src/mb"
+
+# Run MrBayes
+$MB_EXEC your_alignment.nexus
